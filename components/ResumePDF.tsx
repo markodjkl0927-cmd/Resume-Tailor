@@ -230,7 +230,7 @@ export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
           <View>
             <Text style={styles.sectionTitle}>WORK EXPERIENCE</Text>
             {resume.experiences.map((exp, i) => (
-              <View key={i} style={styles.expBlock}>
+              <View key={i} style={i === resume.experiences.length - 1 && !(resume.projects || []).length ? { ...styles.expBlock, marginBottom: 0 } : styles.expBlock}>
                 <View style={styles.expHeader}>
                   <Text style={styles.company}>{exp.company}</Text>
                   <Text style={styles.location}>{exp.location}</Text>
@@ -254,8 +254,8 @@ export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
         {(resume.projects || []).length > 0 && (
           <View>
             <Text style={styles.sectionTitle}>PROJECTS</Text>
-            {(resume.projects || []).map((proj, i) => (
-              <View key={i} style={styles.expBlock}>
+            {(resume.projects || []).map((proj, i, arr) => (
+              <View key={i} style={i === arr.length - 1 ? { ...styles.expBlock, marginBottom: 0 } : styles.expBlock}>
                 <View style={styles.expHeader}>
                   <Text style={styles.company}>{proj.name}</Text>
                   <Text style={styles.company}>
