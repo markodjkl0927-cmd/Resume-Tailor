@@ -38,6 +38,7 @@ Return JSON with this exact structure:
       "notes": []
     }
   ],
+  "summary": "",
   "skills": ["Category: skill1, skill2"],
   "projects": [
     {
@@ -52,7 +53,7 @@ Return JSON with this exact structure:
 Parsing rules:
 - EXPERIENCES: Extract every work experience, internship, freelance role, and volunteer position. Each role is one object. If someone held multiple titles at the same company, create one experience object per title (they will be merged automatically). Copy bullets verbatim — do not paraphrase, summarize, or rephrase.
 - PROJECTS: Extract all personal, academic, or side projects from sections labeled "Projects", "Academic Projects", "Personal Projects", or similar. Each project is one object. startDate and endDate may be empty strings if not stated. Copy bullets verbatim.
-- SUMMARY / PROFILE / OBJECTIVE sections: Ignore completely. Do not put any summary text into bullets. These sections do not map to any field.
+- SUMMARY: Extract text from Summary, Professional Summary, Profile, or Objective sections into "summary" as a single string. Copy verbatim — do not paraphrase. Join multiple lines with a single space. Use "" if absent. Do not put summary text into experience bullets.
 - BULLETS: Only include actual bullet points or responsibility statements from the Experience or Project section. Never put summary or profile text here.
 - DATES: Use the exact format written in the resume (e.g. "Jan 2022", "2020", "Present", "Current"). Use "" if absent.
 - SKILLS: Flatten all skills into an array of strings. If the resume has skill categories (e.g. "Languages: Python, SQL"), preserve as "Languages: Python, SQL". If uncategorized, use "Skills: skill1, skill2".
@@ -270,6 +271,61 @@ Return JSON (no markdown):
     "CategoryName: skill1, skill2",
     "CategoryName: skill3, skill4"
   ]
+}`
+}
+
+export function buildSummaryPrompt(
+  jdText: string,
+  originalSummary: string,
+  jdReport: {
+    role: string
+    titleKeywords: string[]
+    hardSkills: string[]
+    businessContext: string[]
+    top10: string[]
+  },
+  selectedTitles: string[],
+  missingKeywords: string[],
+  variantKeywords: string[]
+): string {
+  return `You are tailoring a resume SUMMARY for ATS compatibility using MINIMAL changes. This is NOT writing a new summary from scratch — preserve the candidate's voice, facts, metrics, and structure.
+
+JOB DESCRIPTION (excerpt):
+${jdText.slice(0, 2000)}
+
+TARGET ROLE FROM JD: ${jdReport.role || '(see JD)'}
+
+TITLES SELECTED FOR THIS APPLICATION:
+${selectedTitles.length > 0 ? selectedTitles.join('\n') : '(none)'}
+
+ORIGINAL SUMMARY (tailor this — do not replace unless necessary):
+${originalSummary}
+
+TOP 10 JD KEYWORDS:
+${(jdReport.top10 || []).join(', ')}
+
+TITLE / FUNCTION KEYWORDS:
+${(jdReport.titleKeywords || []).join(', ')}
+
+RULES (strict order):
+1. PRESERVE: Keep the summary if it already fits the JD well — copy EXACTLY character-for-character when no keyword change is needed.
+2. LENGTH: Keep 2–3 concise sentences (roughly 40–70 words). Do not expand into a paragraph.
+3. VOICE: No first person — never use "I", "me", "my", or "we". Write in third-person professional style (e.g. "Product Manager with 5 years..." not "I am a Product Manager...").
+4. VARIANT FIX: If the summary uses a variant form of a JD keyword (e.g. "A/B testing" vs "A/B test"), replace ONLY that phrase with the JD's exact phrasing.
+5. KEYWORD INSERT: For MISSING keywords below, weave in naturally with the smallest possible edit. Prioritize title/function and business context over stuffing hard skills. Skip any keyword that cannot fit without sounding forced or inventing experience.
+6. ALIGNMENT: Gently align opening line with the JD role (${jdReport.role || 'target role'}) and selected titles — without changing seniority, years, or employers the candidate did not state.
+7. NEVER fabricate employers, titles, years, tools, degrees, metrics, or achievements not implied by the original summary or selected titles.
+8. No bullet points. Plain prose only. No trailing period required on the last sentence (match original style).
+
+VARIANT KEYWORDS — replace variant with JD phrasing only:
+${variantKeywords.length > 0 ? variantKeywords.join(', ') : '(none)'}
+
+MISSING KEYWORDS — insert naturally where possible:
+${missingKeywords.length > 0 ? missingKeywords.join(', ') : '(none)'}
+
+Return JSON (raw JSON only, no markdown):
+{
+  "summary": "tailored summary text"
 }`
 }
 

@@ -76,9 +76,10 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Check which hard skill keywords are STILL missing after bullet rewrite
     const bulletText = [
+      (resume.summary || '').trim(),
       ...boostedExperiences.map(e => e.title),
       ...boostedExperiences.flatMap(e => e.bullets),
-    ].join(' ').toLowerCase()
+    ].filter(Boolean).join(' ').toLowerCase()
 
     const hardSkillsStillMissing = missingHardSkills.filter(kw => !keywordMatches(kw, bulletText))
 
@@ -111,10 +112,11 @@ export async function POST(req: NextRequest) {
     }
 
     const boostedText = [
+      (resume.summary || '').trim(),
       ...boostedExperiences.map(e => e.title),
       ...boostedExperiences.flatMap(e => e.bullets),
       ...boostedSkills,
-    ].join(' ').toLowerCase()
+    ].filter(Boolean).join(' ').toLowerCase()
 
     const covered = allKeywords.filter(kw => keywordMatches(kw, boostedText))
     const missing = allKeywords.filter(kw => !keywordMatches(kw, boostedText))

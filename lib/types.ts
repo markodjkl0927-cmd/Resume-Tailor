@@ -45,6 +45,7 @@ export interface Project {
 
 export interface FactBank {
   contact: Contact
+  summary: string
   experiences: Experience[]
   education: Education[]
   skills: string[]
@@ -76,6 +77,7 @@ export interface JDReport {
 
 export interface GeneratedResume {
   contact: Contact
+  summary: string
   education: Education[]
   skills: string[]
   experiences: GeneratedExperience[]

@@ -31,6 +31,12 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 8,
   },
+  summaryText: {
+    fontSize: 8.5,
+    textAlign: 'justify',
+    marginBottom: 6,
+    lineHeight: 1.3,
+  },
   // Section
   sectionTitle: {
     fontFamily: 'Times-Bold',
@@ -176,34 +182,9 @@ export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
           ))}
         </View>
 
-        {/* Education */}
-        {resume.education.length > 0 && (
-          <View>
-            <Text style={styles.sectionTitle}>EDUCATION</Text>
-            {resume.education.map((edu) => (
-              <View key={edu.id} style={styles.expBlock}>
-                <View style={styles.eduHeader}>
-                  <Text style={styles.school}>{edu.school}</Text>
-                  <Text style={styles.location}>{edu.location}</Text>
-                </View>
-                <View style={styles.degreeRow}>
-                  <Text>
-                    <Text style={styles.degree}>{edu.degree}</Text>
-                    {edu.field ? (
-                      <Text style={styles.degree}>, <Text style={styles.degreeField}>{edu.field}</Text></Text>
-                    ) : null}
-                  </Text>
-                  <Text style={styles.dates}>{edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ''}</Text>
-                </View>
-                {edu.notes.filter(n => n.trim()).map((note, i) => (
-                  <View key={i} style={styles.bullet}>
-                    <Text style={styles.bulletDot}>•</Text>
-                    <Text style={styles.bulletText}>{note}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
+        {/* Summary */}
+        {(resume.summary || '').trim() && (
+          <Text style={styles.summaryText}>{resume.summary.trim()}</Text>
         )}
 
         {/* Skills */}
@@ -230,7 +211,7 @@ export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
           <View>
             <Text style={styles.sectionTitle}>WORK EXPERIENCE</Text>
             {resume.experiences.map((exp, i) => (
-              <View key={i} style={i === resume.experiences.length - 1 && !(resume.projects || []).length ? { ...styles.expBlock, marginBottom: 0 } : styles.expBlock}>
+              <View key={i} style={styles.expBlock}>
                 <View style={styles.expHeader}>
                   <Text style={styles.company}>{exp.company}</Text>
                   <Text style={styles.location}>{exp.location}</Text>
@@ -254,8 +235,8 @@ export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
         {(resume.projects || []).length > 0 && (
           <View>
             <Text style={styles.sectionTitle}>PROJECTS</Text>
-            {(resume.projects || []).map((proj, i, arr) => (
-              <View key={i} style={i === arr.length - 1 ? { ...styles.expBlock, marginBottom: 0 } : styles.expBlock}>
+            {(resume.projects || []).map((proj, i) => (
+              <View key={i} style={styles.expBlock}>
                 <View style={styles.expHeader}>
                   <Text style={styles.company}>{proj.name}</Text>
                   <Text style={styles.company}>
@@ -266,6 +247,36 @@ export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
                   <View key={j} style={styles.bullet}>
                     <Text style={styles.bulletDot}>•</Text>
                     <Text style={styles.bulletText}>{bullet}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Education */}
+        {resume.education.length > 0 && (
+          <View>
+            <Text style={styles.sectionTitle}>EDUCATION</Text>
+            {resume.education.map((edu, i, arr) => (
+              <View key={edu.id} style={i === arr.length - 1 ? { ...styles.expBlock, marginBottom: 0 } : styles.expBlock}>
+                <View style={styles.eduHeader}>
+                  <Text style={styles.school}>{edu.school}</Text>
+                  <Text style={styles.location}>{edu.location}</Text>
+                </View>
+                <View style={styles.degreeRow}>
+                  <Text>
+                    <Text style={styles.degree}>{edu.degree}</Text>
+                    {edu.field ? (
+                      <Text style={styles.degree}>, <Text style={styles.degreeField}>{edu.field}</Text></Text>
+                    ) : null}
+                  </Text>
+                  <Text style={styles.dates}>{edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ''}</Text>
+                </View>
+                {edu.notes.filter(n => n.trim()).map((note, j) => (
+                  <View key={j} style={styles.bullet}>
+                    <Text style={styles.bulletDot}>•</Text>
+                    <Text style={styles.bulletText}>{note}</Text>
                   </View>
                 ))}
               </View>

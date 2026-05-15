@@ -8,6 +8,7 @@ import {
   buildJDReportPrompt,
   buildBulletRewritePrompt,
   buildSkillsPrompt,
+  buildSummaryPrompt,
 } from '@/lib/prompts'
 import React from 'react'
 import { ResumePDFDocument } from '@/components/ResumePDF'
@@ -106,12 +107,23 @@ export async function POST(req: NextRequest) {
       return { experienceId: exp.id, company: exp.company, numberedBullets }
     })
 
-    // Calculate BEFORE score (include titles so "Data Scientist Intern" etc. are matched)
-    const originalText = factBank.experiences.map(exp => {
+    const selectedTitles = factBank.experiences.map(exp => {
       const selectedVersionId = versionMap.get(exp.id)
       const selectedVersion = exp.versions.find(v => v.id === selectedVersionId) || exp.versions[0]
-      return [selectedVersion.title, ...selectedVersion.bullets].join(' ')
-    }).join(' ').toLowerCase()
+      return `${selectedVersion.title} at ${exp.company}`
+    })
+
+    const originalSummary = (factBank.summary || '').trim()
+
+    // Calculate BEFORE score (include titles so "Data Scientist Intern" etc. are matched)
+    const originalText = [
+      originalSummary,
+      ...factBank.experiences.map(exp => {
+        const selectedVersionId = versionMap.get(exp.id)
+        const selectedVersion = exp.versions.find(v => v.id === selectedVersionId) || exp.versions[0]
+        return [selectedVersion.title, ...selectedVersion.bullets].join(' ')
+      }),
+    ].filter(Boolean).join(' ').toLowerCase()
 
     const beforeCovered = atsKeywords.filter(kw => keywordMatches(kw, originalText))
     const beforeMissing = atsKeywords.filter(kw => !keywordMatches(kw, originalText))
@@ -131,8 +143,20 @@ export async function POST(req: NextRequest) {
     console.log('[keywords] missingKeywords:', missingKeywords)
     console.log('[score] beforeScore:', beforeScore)
 
-    // Step C + D in parallel: Bullet rewrite & Skills
-    const [bulletRewriteCompletion, skillsCompletion] = await Promise.all([
+    // Step C + D (+ summary when present) in parallel: Bullet rewrite, Skills, Summary
+    const summaryVariantKeywords = originalSummary
+      ? atsKeywords.filter(kw => {
+          const kwLower = kw.toLowerCase()
+          const sumLower = originalSummary.toLowerCase()
+          return !sumLower.includes(kwLower) && keywordMatches(kw, sumLower)
+        })
+      : []
+    const summaryMissingKeywords = originalSummary
+      ? atsKeywords.filter(kw => !keywordMatches(kw, originalSummary.toLowerCase()))
+      : []
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const round2Tasks: Promise<any>[] = [
       openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [{ role: 'user', content: buildBulletRewritePrompt(top10, variantKeywords, missingKeywords, experiencesWithNumberedBullets) }],
@@ -145,7 +169,39 @@ export async function POST(req: NextRequest) {
         response_format: { type: 'json_object' },
         temperature: 0.2,
       }),
-    ])
+    ]
+
+    if (originalSummary) {
+      round2Tasks.push(
+        openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [{
+            role: 'user',
+            content: buildSummaryPrompt(
+              jdText,
+              originalSummary,
+              {
+                role: rawReport.role || '',
+                titleKeywords: titleFunction,
+                hardSkills,
+                businessContext,
+                top10,
+              },
+              selectedTitles,
+              summaryMissingKeywords,
+              summaryVariantKeywords,
+            ),
+          }],
+          response_format: { type: 'json_object' },
+          temperature: 0.2,
+        }),
+      )
+    }
+
+    const round2Results = await Promise.all(round2Tasks)
+    const bulletRewriteCompletion = round2Results[0]
+    const skillsCompletion = round2Results[1]
+    const summaryCompletion = originalSummary ? round2Results[2] : null
 
     const bulletResult = JSON.parse(bulletRewriteCompletion.choices[0].message.content || '{}') as {
       experiences: Array<{ experienceId: string; bullets: string[] }>
@@ -154,6 +210,12 @@ export async function POST(req: NextRequest) {
     const bulletMap = new Map(bulletResult.experiences.map(e => [e.experienceId, e.bullets]))
 
     const skillsResult = JSON.parse(skillsCompletion.choices[0].message.content || '{}') as { skills: string[] }
+
+    let tailoredSummary = originalSummary
+    if (summaryCompletion) {
+      const summaryResult = JSON.parse(summaryCompletion.choices[0].message.content || '{}') as { summary?: string }
+      tailoredSummary = (summaryResult.summary || originalSummary).trim()
+    }
 
     // Assemble generated resume
     const generatedExperiences: GeneratedExperience[] = factBank.experiences.map(exp => {
@@ -170,12 +232,13 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Calculate AFTER score (include titles + bullets + skills)
+    // Calculate AFTER score (include summary + titles + bullets + skills)
     const resumeText = [
+      tailoredSummary,
       ...generatedExperiences.map(e => e.title),
       ...generatedExperiences.flatMap(e => e.bullets),
       ...(skillsResult.skills || factBank.skills),
-    ].join(' ').toLowerCase()
+    ].filter(Boolean).join(' ').toLowerCase()
 
     const covered = atsKeywords.filter(kw => keywordMatches(kw, resumeText))
     const missing = atsKeywords.filter(kw => !keywordMatches(kw, resumeText))
@@ -191,6 +254,7 @@ export async function POST(req: NextRequest) {
 
     let resume: GeneratedResume = {
       contact: factBank.contact,
+      summary: tailoredSummary,
       education: factBank.education,
       skills: skillsResult.skills || factBank.skills,
       experiences: generatedExperiences,

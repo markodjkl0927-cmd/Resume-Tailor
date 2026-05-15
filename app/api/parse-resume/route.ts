@@ -25,6 +25,7 @@ async function detectAndExtractText(buffer: Buffer, filename: string): Promise<s
 
 interface ParsedDoc {
   contact: FactBank['contact']
+  summary?: string
   experiences: Array<{ company: string; location: string; startDate: string; endDate: string; title: string; bullets: string[] }>
   education: Array<{ school: string; location: string; degree: string; field: string; startDate: string; endDate: string; notes: string[] }>
   skills: string[]
@@ -74,6 +75,7 @@ function mergeIntofactBank(
 ): FactBank {
   const factBank: FactBank = {
     contact: { name: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '' },
+    summary: '',
     experiences: [],
     education: [],
     skills: [],
@@ -85,6 +87,15 @@ function mergeIntofactBank(
   // Use contact from first successful parse
   if (successResults[0]?.parsed) {
     factBank.contact = successResults[0].parsed.contact
+  }
+
+  // Use first non-empty summary from parsed files
+  for (const result of successResults) {
+    const s = result.parsed?.summary?.trim()
+    if (s) {
+      factBank.summary = s
+      break
+    }
   }
 
   // Merge experiences: group by company name (case-insensitive)

@@ -153,10 +153,11 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
     const rpt = resume.jdReport
     if (!rpt) return
     const text = [
+      (resume.summary || '').trim(),
       ...resume.experiences.map(e => e.title),
       ...resume.experiences.flatMap(e => e.bullets),
       ...resume.skills,
-    ].join(' ').toLowerCase()
+    ].filter(Boolean).join(' ').toLowerCase()
     const allKw = [...(rpt.hardSkills || []), ...(rpt.businessContext || []), ...(rpt.titleKeywords || [])]
     let earned = 0, total = 0
     ;(rpt.hardSkills || []).forEach(kw => { total += 2; if (kwMatches(kw, text)) earned += 2 })
@@ -448,34 +449,15 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
             </div>
           </div>
 
-          {/* Education */}
-          {resume.education.length > 0 && (
-            <div style={{ marginTop: '6px' }}>
-              <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '9pt', borderBottom: '2px solid black', paddingBottom: '1px', marginBottom: '4px' }}>EDUCATION</div>
-              {resume.education.map((edu) => (
-                <div key={edu.id} style={{ marginBottom: '5px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: 'bold' }}><Editable value={edu.school} onChange={v => upEdu(edu.id, 'school', v)} /></span>
-                    <span style={{ fontWeight: 'bold' }}><Editable value={edu.location} onChange={v => upEdu(edu.id, 'location', v)} /></span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>
-                      <em><Editable value={edu.degree} onChange={v => upEdu(edu.id, 'degree', v)} /></em>
-                      {edu.field && <span>, <strong><em><Editable value={edu.field} onChange={v => upEdu(edu.id, 'field', v)} /></em></strong></span>}
-                    </span>
-                    <span style={{ color: '#333' }}>
-                      <Editable value={edu.startDate} onChange={v => upEdu(edu.id, 'startDate', v)} />
-                      {edu.endDate ? <span> – <Editable value={edu.endDate} onChange={v => upEdu(edu.id, 'endDate', v)} /></span> : ''}
-                    </span>
-                  </div>
-                  {edu.notes?.map((note, ni) => (
-                    <Row key={ni} id={`edunote-${edu.id}-${ni}`} hovered={hovered} setHovered={setHovered} onDelete={() => deleteEduNote(edu.id, ni)} style={{ marginLeft: '10px' }}>
-                      <span style={{ width: '12px', flexShrink: 0, userSelect: 'none' }}>•</span>
-                      <Editable value={note} onChange={v => upEduNote(edu.id, ni, v)} style={{ flex: 1 }} />
-                    </Row>
-                  ))}
-                </div>
-              ))}
+          {/* Summary */}
+          {(resume.summary || '').trim() && (
+            <div style={{ marginTop: '4px', marginBottom: '6px' }}>
+              <Editable
+                tag="div"
+                value={resume.summary}
+                onChange={v => onChange({ ...resume, summary: v })}
+                style={{ textAlign: 'justify', lineHeight: 1.3 }}
+              />
             </div>
           )}
 
@@ -552,6 +534,37 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
                     onClick={() => addProjBullet(pi)}
                     style={{ marginLeft: '10px', marginTop: '2px', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '7.5pt', fontFamily: 'Cambria, "Times New Roman", serif', padding: 0 }}
                   >+ add bullet</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Education */}
+          {resume.education.length > 0 && (
+            <div style={{ marginTop: '6px' }}>
+              <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '9pt', borderBottom: '2px solid black', paddingBottom: '1px', marginBottom: '4px' }}>EDUCATION</div>
+              {resume.education.map((edu) => (
+                <div key={edu.id} style={{ marginBottom: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 'bold' }}><Editable value={edu.school} onChange={v => upEdu(edu.id, 'school', v)} /></span>
+                    <span style={{ fontWeight: 'bold' }}><Editable value={edu.location} onChange={v => upEdu(edu.id, 'location', v)} /></span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>
+                      <em><Editable value={edu.degree} onChange={v => upEdu(edu.id, 'degree', v)} /></em>
+                      {edu.field && <span>, <strong><em><Editable value={edu.field} onChange={v => upEdu(edu.id, 'field', v)} /></em></strong></span>}
+                    </span>
+                    <span style={{ color: '#333' }}>
+                      <Editable value={edu.startDate} onChange={v => upEdu(edu.id, 'startDate', v)} />
+                      {edu.endDate ? <span> – <Editable value={edu.endDate} onChange={v => upEdu(edu.id, 'endDate', v)} /></span> : ''}
+                    </span>
+                  </div>
+                  {edu.notes?.map((note, ni) => (
+                    <Row key={ni} id={`edunote-${edu.id}-${ni}`} hovered={hovered} setHovered={setHovered} onDelete={() => deleteEduNote(edu.id, ni)} style={{ marginLeft: '10px' }}>
+                      <span style={{ width: '12px', flexShrink: 0, userSelect: 'none' }}>•</span>
+                      <Editable value={note} onChange={v => upEduNote(edu.id, ni, v)} style={{ flex: 1 }} />
+                    </Row>
+                  ))}
                 </div>
               ))}
             </div>

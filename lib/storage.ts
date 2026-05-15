@@ -4,6 +4,7 @@ const STORAGE_KEY = 'resume_builder_factbank'
 
 const EMPTY_FACTBANK: FactBank = {
   contact: { name: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '' },
+  summary: '',
   experiences: [],
   education: [],
   skills: [],
@@ -14,7 +15,9 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 // Migrate legacy data: rename frames → versions
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function migrate(fb: any): FactBank {
-  if (!fb?.experiences) return fb
+  if (!fb) return EMPTY_FACTBANK
+  if (typeof fb.summary !== 'string') fb.summary = ''
+  if (!fb?.experiences) return fb as FactBank
   fb.experiences = fb.experiences.map((exp: any) => {
     if (exp.frames && !exp.versions) {
       exp.versions = exp.frames

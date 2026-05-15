@@ -158,6 +158,14 @@ export default function ApplicationsLog({ applications, onChange }: Props) {
                   </div>
                 )}
 
+                {/* Summary */}
+                {(app.resume.summary || '').trim() && (
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ fontFamily: 'Instrument Sans', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 6 }}>Summary</p>
+                    <p style={{ fontFamily: 'Instrument Sans', fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>{app.resume.summary.trim()}</p>
+                  </div>
+                )}
+
                 {/* Skills */}
                 {skills.length > 0 && (
                   <div style={{ marginBottom: 16 }}>

@@ -41,6 +41,7 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
       const newFB = data.factBank as FactBank
       const merged: FactBank = {
         contact: factBank.contact.name ? factBank.contact : newFB.contact,
+        summary: factBank.summary?.trim() ? factBank.summary : (newFB.summary || ''),
         education: mergeEducation(factBank.education, newFB.education),
         experiences: mergeExperiences(factBank.experiences, newFB.experiences),
         skills: mergeSkills(factBank.skills, newFB.skills),
@@ -213,7 +214,7 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
     if (!file) return
     try {
       const fb = await importFactBank(file)
-      update(fb)
+      update({ ...fb, summary: typeof fb.summary === 'string' ? fb.summary : '' })
     } catch (err) {
       setUploadErrors([String(err)])
     }
@@ -286,6 +287,24 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
               />
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Summary */}
+      <section>
+        <h3 className="section-label">Summary</h3>
+        <div className="card">
+          <p className="mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'Instrument Sans', fontSize: '12px', lineHeight: 1.5 }}>
+            Professional summary from your resume. Used when tailoring for each job (2–3 sentences).
+          </p>
+          <textarea
+            className="input-field w-full"
+            rows={4}
+            value={factBank.summary || ''}
+            onChange={e => update({ ...factBank, summary: e.target.value })}
+            placeholder="e.g. Product Manager with 5+ years driving cross-functional execution..."
+            style={{ resize: 'vertical', minHeight: '88px' }}
+          />
         </div>
       </section>
 
