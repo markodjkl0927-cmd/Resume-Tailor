@@ -210,7 +210,7 @@ export default function JDInput({ factBank, onGenerated }: Props) {
             'Selecting best title version for each experience...',
             'Analyzing JD keywords...',
             'Rewriting bullets with JD keywords...',
-            'Fitting to one page...',
+            'Fitting to two pages...',
           ].map((label, i) => (
             <div key={i} className="flex items-center gap-2.5 text-xs" style={{ color: i <= activeStep ? 'var(--text)' : 'var(--text-dim)', fontFamily: 'Instrument Sans', transition: 'color 0.4s' }}>
               <span

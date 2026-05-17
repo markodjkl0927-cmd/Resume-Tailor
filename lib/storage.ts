@@ -3,7 +3,7 @@ import { FactBank } from './types'
 const STORAGE_KEY = 'resume_builder_factbank'
 
 const EMPTY_FACTBANK: FactBank = {
-  contact: { name: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '' },
+  contact: { name: '', headline: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '' },
   summary: '',
   experiences: [],
   education: [],
@@ -17,6 +17,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 function migrate(fb: any): FactBank {
   if (!fb) return EMPTY_FACTBANK
   if (typeof fb.summary !== 'string') fb.summary = ''
+  if (fb.contact && typeof fb.contact.headline !== 'string') fb.contact.headline = ''
   if (!fb?.experiences) return fb as FactBank
   fb.experiences = fb.experiences.map((exp: any) => {
     if (exp.frames && !exp.versions) {

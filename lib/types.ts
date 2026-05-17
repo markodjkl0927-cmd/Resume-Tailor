@@ -11,6 +11,12 @@ export interface Experience {
   location: string
   startDate: string
   endDate: string
+  /** Shown after role bullets on PDF (optional), e.g. "Python, SQL, GCP" */
+  pdfRoleSkillsLine?: string
+  /** E.g. Freelance, Contract, Full-time */
+  pdfEmploymentType?: string
+  /** Inserts PDF page break before this bullet index (0-based); optional tuning */
+  pdfPageBreakBeforeBulletIndex?: number
   versions: Version[]
 }
 
@@ -27,6 +33,7 @@ export interface Education {
 
 export interface Contact {
   name: string
+  headline: string
   email: string
   phone: string
   location: string
@@ -59,6 +66,9 @@ export interface GeneratedExperience {
   startDate: string
   endDate: string
   bullets: string[]
+  pdfRoleSkillsLine?: string
+  pdfEmploymentType?: string
+  pdfPageBreakBeforeBulletIndex?: number
 }
 
 export interface JDReport {

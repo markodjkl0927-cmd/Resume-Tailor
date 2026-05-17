@@ -276,9 +276,9 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
       <section>
         <h3 className="section-label">Contact</h3>
         <div className="card grid grid-cols-2 gap-3">
-          {(['name', 'email', 'phone', 'location', 'linkedin', 'github', 'website'] as const).map(field => (
+          {(['name', 'headline', 'email', 'phone', 'location', 'linkedin', 'github', 'website'] as const).map(field => (
             <div key={field}>
-              <label className="block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'Instrument Sans', fontSize: '10.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{field}</label>
+              <label className="block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'Instrument Sans', fontSize: '10.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{field === 'headline' ? 'Professional headline (PDF)' : field}</label>
               <input
                 className="input-field w-full"
                 value={factBank.contact[field] || ''}
@@ -420,6 +420,48 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
                           />
                         </div>
                       ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+                      <div>
+                        <label className="block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'Instrument Sans', fontSize: '10.5px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>PDF employment type</label>
+                        <input
+                          className="input-field w-full"
+                          value={exp.pdfEmploymentType || ''}
+                          onChange={e => updateExp(exp.id, { pdfEmploymentType: e.target.value })}
+                          placeholder="e.g. Freelance, Full-time"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'Instrument Sans', fontSize: '10.5px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>PDF page break before bullet #</label>
+                        <p className="mb-1" style={{ color: 'var(--text-dim)', fontFamily: 'Instrument Sans', fontSize: '10px', lineHeight: 1.4 }}>0-based index. Matches Word when the break happens before bullet N (e.g. 6 = before the 7th bullet).</p>
+                        <input
+                          type="number"
+                          min={0}
+                          className="input-field w-full"
+                          value={exp.pdfPageBreakBeforeBulletIndex ?? ''}
+                          onChange={e => {
+                            const v = e.target.value
+                            updateExp(exp.id, {
+                              pdfPageBreakBeforeBulletIndex: v === '' || Number.isNaN(Number(v))
+                                ? undefined
+                                : Math.max(0, Math.floor(Number(v))),
+                            })
+                          }}
+                          placeholder="e.g. 6"
+                        />
+                      </div>
+                      <div className="md:col-span-1" />
+                    </div>
+                    <div>
+                      <label className="block mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'Instrument Sans', fontSize: '10.5px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>PDF skills line after role</label>
+                      <textarea
+                        className="input-field w-full resize-y"
+                        rows={2}
+                        value={exp.pdfRoleSkillsLine || ''}
+                        onChange={e => updateExp(exp.id, { pdfRoleSkillsLine: e.target.value })}
+                        placeholder="Comma-separated skills for the “Skills:” line under this job on the PDF"
+                      />
                     </div>
 
                     {/* Frame Tabs */}

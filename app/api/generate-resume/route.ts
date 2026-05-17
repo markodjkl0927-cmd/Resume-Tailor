@@ -20,10 +20,10 @@ async function countPDFPages(resume: GeneratedResume): Promise<number> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buffer = await renderToBuffer(React.createElement(ResumePDFDocument, { resume }) as any)
     const parsed = await pdfParse(buffer)
-    console.log(`[one-page check] pages: ${parsed.numpages}`)
+    console.log(`[page check] pages: ${parsed.numpages}`)
     return parsed.numpages
   } catch (err) {
-    console.error('[one-page check] renderToBuffer/pdfParse failed:', err)
+    console.error('[page check] renderToBuffer/pdfParse failed:', err)
     return 1
   }
 }
@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
     // Calculate BEFORE score (include titles so "Data Scientist Intern" etc. are matched)
     const originalText = [
       originalSummary,
+      (factBank.contact.headline || '').trim(),
       ...factBank.experiences.map(exp => {
         const selectedVersionId = versionMap.get(exp.id)
         const selectedVersion = exp.versions.find(v => v.id === selectedVersionId) || exp.versions[0]
@@ -229,12 +230,16 @@ export async function POST(req: NextRequest) {
         startDate: exp.startDate,
         endDate: exp.endDate,
         bullets: bullets.map(b => b.trimEnd().replace(/\.$/, '')),
+        pdfRoleSkillsLine: exp.pdfRoleSkillsLine?.trim(),
+        pdfEmploymentType: exp.pdfEmploymentType?.trim(),
+        pdfPageBreakBeforeBulletIndex: exp.pdfPageBreakBeforeBulletIndex,
       }
     })
 
     // Calculate AFTER score (include summary + titles + bullets + skills)
     const resumeText = [
       tailoredSummary,
+      (factBank.contact.headline || '').trim(),
       ...generatedExperiences.map(e => e.title),
       ...generatedExperiences.flatMap(e => e.bullets),
       ...(skillsResult.skills || factBank.skills),
@@ -266,12 +271,13 @@ export async function POST(req: NextRequest) {
       jdReport,
     }
 
-    // One-page constraint: render and trim if needed
+    // Two-page max: render and trim experience bullets if content exceeds 2 pages
     let pageCount = await countPDFPages(resume)
     let iterations = 0
     const maxIterations = 15
+    const maxPages = 2
 
-    while (pageCount > 1 && iterations < maxIterations) {
+    while (pageCount > maxPages && iterations < maxIterations) {
       iterations++
 
       const perExp = resume.experiences

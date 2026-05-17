@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@fontsource/carlito": "^5.2.8",
     "@react-pdf/renderer": "^4.3.2",
     "cheerio": "^1.2.0",
     "mammoth": "^1.12.0",

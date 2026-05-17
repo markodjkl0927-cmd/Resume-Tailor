@@ -1,4 +1,5 @@
 import React from 'react'
+import path from 'path'
 import {
   Document,
   Page,
@@ -6,130 +7,179 @@ import {
   View,
   StyleSheet,
   Link,
+  Font,
 } from '@react-pdf/renderer'
+import type { Style } from '@react-pdf/types'
 import { GeneratedResume } from '@/lib/types'
+
+const COLORS = {
+  body: '#000000',
+  alt: '#3E3E3E',
+  divider: '#9A9A9A',
+}
+
+let carlitoRegistered = false
+function registerCarlitoFonts() {
+  if (carlitoRegistered) return
+  try {
+    Font.register({
+      family: 'Carlito',
+      fonts: [
+        { src: path.join(process.cwd(), 'public', 'fonts', 'Carlito-Regular.ttf'), fontWeight: 'normal' },
+        { src: path.join(process.cwd(), 'public', 'fonts', 'Carlito-Bold.ttf'), fontWeight: 'bold' },
+      ],
+    })
+    carlitoRegistered = true
+  } catch (e) {
+    console.warn('[ResumePDF] Carlito registration failed:', e)
+  }
+}
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: 'Times-Roman',
-    fontSize: 8.5,
-    paddingTop: 36,
+    fontFamily: 'Carlito',
+    fontSize: 10,
+    lineHeight: 1.15,
+    color: COLORS.body,
+    backgroundColor: '#ffffff',
+    /** ~0.30 in from physical top; sides/bottom 0.50 in — matches DOCX-first-line placement */
+    paddingTop: 22,
     paddingBottom: 36,
     paddingHorizontal: 36,
-    lineHeight: 1.25,
-    color: '#000000',
   },
-  // Header
-  name: {
-    fontSize: 14,
-    fontFamily: 'Times-Bold',
+  hr: {
+    borderTopWidth: 1.2,
+    borderTopColor: COLORS.divider,
+    alignSelf: 'stretch',
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  centered: {
     textAlign: 'center',
-    marginBottom: 6,
+    lineHeight: 1.15,
   },
-  contactLine: {
-    fontSize: 8,
-    color: '#333333',
-    marginBottom: 8,
-  },
-  summaryText: {
-    fontSize: 8.5,
-    textAlign: 'justify',
-    marginBottom: 6,
-    lineHeight: 1.3,
-  },
-  // Section
-  sectionTitle: {
-    fontFamily: 'Times-Bold',
-    fontSize: 8.5,
-    textTransform: 'uppercase',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 1,
+  name: {
+    fontSize: 16,
+    fontWeight: 'normal',
     marginBottom: 4,
-    marginTop: 3,
+    textAlign: 'center',
+    lineHeight: 1.15,
   },
-  // Experience
-  expHeader: {
+  headline: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 1.15,
+    marginBottom: 2,
+    color: COLORS.body,
+  },
+  headerContact: {
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 1.15,
+    color: COLORS.body,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 6,
+    marginBottom: 14,
+    lineHeight: 1.15,
+    color: COLORS.body,
+    textAlign: 'left',
+  },
+  skillRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 0,
+    lineHeight: 1.15,
+    paddingLeft: 13,
+  },
+  skillDot: {
+    width: 18,
+    fontSize: 10,
+    paddingTop: 0,
+    color: COLORS.body,
+  },
+  skillBody: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingLeft: 4,
+    fontSize: 10,
+    lineHeight: 1.15,
+    color: COLORS.body,
+  },
+  bold: {
+    fontWeight: 'bold',
+  },
+  jobBlockFirst: {
+    marginTop: 0,
     marginBottom: 0,
   },
-  company: {
-    fontFamily: 'Times-Bold',
-    fontSize: 8.5,
+  jobBlock: {
+    marginTop: 14,
+    marginBottom: 0,
   },
-  location: {
-    fontSize: 8.5,
-    fontFamily: 'Times-Bold',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  title: {
-    fontSize: 8.5,
-    fontFamily: 'Times-Italic',
-  },
-  dates: {
-    fontSize: 8.5,
-    color: '#333333',
-  },
-  bullet: {
-    flexDirection: 'row',
-    marginBottom: 1.5,
-    paddingRight: 4,
-  },
-  bulletDot: {
-    width: 10,
-    fontSize: 8.5,
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 8.5,
-    textAlign: 'justify',
-  },
-  expBlock: {
+  jobHeaderLine: {
+    fontSize: 11,
+    lineHeight: 1.15,
     marginBottom: 5,
+    marginLeft: 0,
+    paddingLeft: 0,
+    color: COLORS.body,
+    textAlign: 'left',
   },
-  // Education
-  eduHeader: {
+  bulletRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+    paddingLeft: 10,
+    lineHeight: 1.08,
   },
-  school: {
-    fontFamily: 'Times-Bold',
-    fontSize: 8.5,
+  bulletGlyph: {
+    width: 12,
+    fontSize: 10,
+    color: COLORS.alt,
   },
-  degreeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 3,
-  },
-  degree: {
-    fontFamily: 'Times-Italic',
-    fontSize: 8.5,
-  },
-  degreeField: {
-    fontFamily: 'Times-BoldItalic',
-    fontSize: 8.5,
-  },
-  // Skills
-  skillLine: {
-    flexDirection: 'row',
-    marginBottom: 2,
-  },
-  skillBullet: {
-    width: 10,
-    fontSize: 8.5,
-  },
-  skillCategory: {
-    fontFamily: 'Times-Bold',
-    fontSize: 8.5,
-  },
-  skillText: {
+  bulletTextWrap: {
     flex: 1,
-    fontSize: 8.5,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingLeft: 11,
+    maxWidth: '100%',
+  },
+  justifiedLine: {
+    fontSize: 10,
+    lineHeight: 1.09,
+    textAlign: 'justify',
+    color: COLORS.alt,
+    width: '100%',
+  },
+  /** Flush to body margin — not indented with bullet columns (DOCX) */
+  roleSkillsLine: {
+    fontSize: 10,
+    lineHeight: 1.1,
+    marginTop: 2,
+    marginBottom: 11,
+    marginLeft: 0,
+    paddingLeft: 0,
+    color: COLORS.body,
+    textAlign: 'left',
+  },
+  educationLine: {
+    fontSize: 10,
+    lineHeight: 1.15,
+    marginLeft: 0,
+    marginTop: 2,
+    color: COLORS.body,
+  },
+  projectHeader: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginTop: 8,
+    marginBottom: 4,
+    lineHeight: 1.15,
   },
 })
 
@@ -138,151 +188,237 @@ function toAbsoluteURL(str: string): string {
   return 'https://' + str
 }
 
+function formatEducationLikeDocx(edu: GeneratedResume['education'][0]): string {
+  const degPart = [edu.degree, edu.field].filter(Boolean).join(' in ')
+  const dates = [edu.startDate, edu.endDate].filter(Boolean).join(' – ')
+  const body = [degPart, edu.school].filter(Boolean).join(' ')
+  return dates ? `${body} | ${dates}` : body
+}
+
 function parseSkillLine(line: string): { category: string; items: string } {
   const colonIdx = line.indexOf(':')
-  if (colonIdx === -1) return { category: '', items: line }
+  if (colonIdx === -1) return { category: '', items: line.trim() }
   return {
     category: line.slice(0, colonIdx + 1),
     items: line.slice(colonIdx + 1),
   }
 }
 
-function isURL(str: string): boolean {
-  return str.startsWith('http://') || str.startsWith('https://') || str.includes('linkedin.com') || str.includes('github.com')
-}
-
-function toURL(str: string): string {
-  if (str.startsWith('http')) return str
-  return 'https://' + str
+/** Renders **bold** as nested Text; must not return Fragment wrapper (react-pdf). */
+function RichParagraph({
+  text,
+  paragraphStyle,
+  baseStyle,
+  boldStyle,
+}: {
+  text: string
+  paragraphStyle: Style
+  baseStyle: Style
+  boldStyle: Style
+}) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  const children = parts.flatMap((p, i) => {
+    if (!p) return []
+    if (/^\*\*[^*]+\*\*$/.test(p)) {
+      return [<Text key={i} style={[baseStyle, boldStyle]}>{p.slice(2, -2)}</Text>]
+    }
+    return [<Text key={i} style={baseStyle}>{p}</Text>]
+  })
+  return <Text style={paragraphStyle}>{children}</Text>
 }
 
 export function ResumePDFDocument({ resume }: { resume: GeneratedResume }) {
-  const { phone, email, linkedin, github, website } = resume.contact
-  const contactItems: Array<{ label: string; url?: string }> = [
-    ...(phone ? [{ label: phone }] : []),
-    ...(email ? [{ label: email, url: `mailto:${email}` }] : []),
-    ...(linkedin ? [{ label: 'LinkedIn', url: toAbsoluteURL(linkedin) }] : []),
-    ...(github ? [{ label: 'GitHub', url: toAbsoluteURL(github) }] : []),
-    ...(website ? [{ label: 'Website', url: toAbsoluteURL(website) }] : []),
-  ]
+  registerCarlitoFonts()
+
+  const { phone, email, linkedin, github, website, headline } = resume.contact
+  const headlineTrim = (headline || '').trim()
+
+  function contactSegment(sep: boolean, inner: React.ReactNode) {
+    return (
+      <Text style={styles.headerContact}>
+        {sep ? ' | ' : ''}
+        {inner}
+      </Text>
+    )
+  }
+
+  function buildContactChunks(): React.ReactNode[] {
+    const chunks: React.ReactNode[] = []
+    if (resume.contact.location) chunks.push(contactSegment(false, resume.contact.location))
+    if (phone) chunks.push(contactSegment(chunks.length > 0, phone))
+    if (email) {
+      chunks.push(
+        contactSegment(
+          chunks.length > 0,
+          <Link src={`mailto:${email}`} style={{ color: '#000000' }}>{email}</Link>,
+        ),
+      )
+    }
+    if (linkedin) {
+      const url = toAbsoluteURL(linkedin)
+      chunks.push(contactSegment(chunks.length > 0, <Link src={url} style={{ color: '#000000' }}>LinkedIn</Link>))
+    }
+    if (github) {
+      const url = toAbsoluteURL(github)
+      chunks.push(contactSegment(chunks.length > 0, <Link src={url} style={{ color: '#000000' }}>GitHub</Link>))
+    }
+    if (website) {
+      const url = toAbsoluteURL(website)
+      chunks.push(contactSegment(chunks.length > 0, <Link src={url} style={{ color: '#000000' }}>Website</Link>))
+    }
+    return chunks
+  }
+
+  const summaryTrim = (resume.summary || '').trim()
+  const hasSkills = resume.skills.length > 0
+  const hasExp = resume.experiences.length > 0
+  const projList = resume.projects || []
+  const hasProj = projList.length > 0
+  const hasEdu = resume.education.length > 0
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Header */}
-        <Text style={styles.name}>{resume.contact.name}</Text>
-        <View style={{ ...styles.contactLine, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' }}>
-          {contactItems.map((item, i) => (
-            <Text key={i} style={{ fontSize: 8, color: '#333333' }}>
-              {i > 0 ? ' | ' : ''}
-              {item.url ? (
-                <Link src={item.url} style={{ color: '#1155CC' }}>{item.label}</Link>
-              ) : item.label}
-            </Text>
-          ))}
+      <Page size="LETTER" style={styles.page} wrap>
+        <View wrap={false}>
+          <Text style={styles.name}>{resume.contact.name || '\u200B'}</Text>
+          {headlineTrim ? <Text style={styles.headline}>{headlineTrim}</Text> : null}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {buildContactChunks()}
+          </View>
         </View>
 
-        {/* Summary */}
-        {(resume.summary || '').trim() && (
-          <Text style={styles.summaryText}>{resume.summary.trim()}</Text>
-        )}
+        <View style={styles.hr} />
 
-        {/* Skills */}
-        {resume.skills.length > 0 && (
-          <View>
-            <Text style={styles.sectionTitle}>SKILLS</Text>
+        {summaryTrim ? (
+          <>
+            <Text style={styles.sectionTitle}>Summary</Text>
+            <RichParagraph
+              text={summaryTrim.replace(/\u00A0/g, ' ')}
+              paragraphStyle={{
+                fontSize: 10,
+                lineHeight: 1.22,
+                textAlign: 'justify',
+                color: COLORS.body,
+                marginBottom: 18,
+              }}
+              baseStyle={{ fontSize: 10, lineHeight: 1.22, textAlign: 'justify', color: COLORS.body }}
+              boldStyle={{ fontWeight: 'bold' }}
+            />
+            <View style={styles.hr} />
+          </>
+        ) : null}
+
+        {hasSkills ? (
+          <>
+            <Text style={styles.sectionTitle}>Skills & Technologies</Text>
             {resume.skills.map((line, i) => {
-              const { category, items } = parseSkillLine(line)
+              const trimmed = line.trim()
+              if (!trimmed) return null
+              const { category, items } = parseSkillLine(trimmed)
               return (
-                <View key={i} style={styles.skillLine}>
-                  <Text style={styles.skillBullet}>•</Text>
-                  <Text style={styles.skillText}>
-                    <Text style={styles.skillCategory}>{category}</Text>
-                    {items}
-                  </Text>
+                <View key={i} style={styles.skillRow} wrap={false}>
+                  <Text style={styles.skillDot}>•</Text>
+                  <View style={styles.skillBody}>
+                    <Text>
+                      {category ? <Text style={{ fontWeight: 'bold' }}>{category}</Text> : null}
+                      <Text>{items}</Text>
+                    </Text>
+                  </View>
                 </View>
               )
             })}
-          </View>
-        )}
+            <View style={styles.hr} />
+          </>
+        ) : null}
 
-        {/* Work Experience */}
-        {resume.experiences.length > 0 && (
-          <View>
-            <Text style={styles.sectionTitle}>WORK EXPERIENCE</Text>
-            {resume.experiences.map((exp, i) => (
-              <View key={i} style={styles.expBlock}>
-                <View style={styles.expHeader}>
-                  <Text style={styles.company}>{exp.company}</Text>
-                  <Text style={styles.location}>{exp.location}</Text>
-                </View>
-                <View style={styles.titleRow}>
-                  <Text style={styles.title}>{exp.title}</Text>
-                  <Text style={styles.dates}>{exp.startDate}{exp.endDate ? ` – ${exp.endDate}` : ''}</Text>
-                </View>
-                {exp.bullets.filter(b => b.trim()).map((bullet, j) => (
-                  <View key={j} style={styles.bullet}>
-                    <Text style={styles.bulletDot}>•</Text>
-                    <Text style={styles.bulletText}>{bullet}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Projects */}
-        {(resume.projects || []).length > 0 && (
-          <View>
-            <Text style={styles.sectionTitle}>PROJECTS</Text>
-            {(resume.projects || []).map((proj, i) => (
-              <View key={i} style={styles.expBlock}>
-                <View style={styles.expHeader}>
-                  <Text style={styles.company}>{proj.name}</Text>
-                  <Text style={styles.company}>
-                    {proj.startDate || ''}{proj.startDate && proj.endDate ? ' – ' : ''}{proj.endDate || ''}
+        {hasExp ? (
+          <>
+            <Text style={styles.sectionTitle}>Experience</Text>
+            {resume.experiences.map((exp, idx) => {
+              const bullets = exp.bullets.filter(b => b.trim())
+              const company = (exp.company || '').trim()
+              const datePart = `${exp.startDate || ''}${exp.endDate ? ` – ${exp.endDate}` : ''}`
+              const loc = (exp.location || '').trim()
+              const et = (exp.pdfEmploymentType || '').trim()
+              const rest = [datePart, loc, et].filter(Boolean).join(' | ')
+              const jobRight = [company, rest].filter(Boolean).join(' | ')
+              return (
+                <View key={`${exp.company}-${idx}`} style={idx === 0 ? styles.jobBlockFirst : styles.jobBlock} wrap={false}>
+                  <Text style={styles.jobHeaderLine} wrap={false}>
+                    <Text style={{ fontWeight: 'bold' }}>{exp.title || ''}</Text>
+                    {jobRight ? <Text>{` ${jobRight}`}</Text> : null}
                   </Text>
+                  {bullets.map((bullet, j) => (
+                    <React.Fragment key={j}>
+                      {typeof exp.pdfPageBreakBeforeBulletIndex === 'number' && exp.pdfPageBreakBeforeBulletIndex === j ? (
+                        <View break />
+                      ) : null}
+                      <View style={styles.bulletRow} wrap={false}>
+                        <Text style={styles.bulletGlyph}>•</Text>
+                        <View style={styles.bulletTextWrap}>
+                          <RichParagraph
+                            text={bullet.trimEnd().replace(/\.$/, '').replace(/\u00A0/g, ' ')}
+                            paragraphStyle={styles.justifiedLine}
+                            baseStyle={{ fontSize: 10, lineHeight: 1.09, textAlign: 'justify', color: COLORS.alt, width: '100%' }}
+                            boldStyle={{ fontWeight: 'bold', color: COLORS.alt }}
+                          />
+                        </View>
+                      </View>
+                    </React.Fragment>
+                  ))}
+                  {(exp.pdfRoleSkillsLine || '').trim() ? (
+                    <Text style={styles.roleSkillsLine} wrap={false}>
+                      Skills: {(exp.pdfRoleSkillsLine || '').trim()}
+                    </Text>
+                  ) : null}
                 </View>
-                {proj.bullets.filter(b => b.trim()).map((bullet, j) => (
-                  <View key={j} style={styles.bullet}>
-                    <Text style={styles.bulletDot}>•</Text>
-                    <Text style={styles.bulletText}>{bullet}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        )}
+              )
+            })}
+            <View style={styles.hr} />
+          </>
+        ) : null}
 
-        {/* Education */}
-        {resume.education.length > 0 && (
-          <View>
-            <Text style={styles.sectionTitle}>EDUCATION</Text>
-            {resume.education.map((edu, i, arr) => (
-              <View key={edu.id} style={i === arr.length - 1 ? { ...styles.expBlock, marginBottom: 0 } : styles.expBlock}>
-                <View style={styles.eduHeader}>
-                  <Text style={styles.school}>{edu.school}</Text>
-                  <Text style={styles.location}>{edu.location}</Text>
-                </View>
-                <View style={styles.degreeRow}>
-                  <Text>
-                    <Text style={styles.degree}>{edu.degree}</Text>
-                    {edu.field ? (
-                      <Text style={styles.degree}>, <Text style={styles.degreeField}>{edu.field}</Text></Text>
-                    ) : null}
-                  </Text>
-                  <Text style={styles.dates}>{edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ''}</Text>
-                </View>
-                {edu.notes.filter(n => n.trim()).map((note, j) => (
-                  <View key={j} style={styles.bullet}>
-                    <Text style={styles.bulletDot}>•</Text>
-                    <Text style={styles.bulletText}>{note}</Text>
+        {hasProj ? (
+          <>
+            <Text style={styles.sectionTitle}>Projects</Text>
+            {projList.map((proj, i) => (
+              <View key={proj.id || i} style={{ marginBottom: 8 }} wrap={false}>
+                <Text style={styles.projectHeader}>
+                  {proj.name}
+                  {(proj.startDate || proj.endDate) ? `  |  ${[proj.startDate, proj.endDate].filter(Boolean).join(' – ')}` : ''}
+                </Text>
+                {proj.bullets.filter(b => b.trim()).map((b, j) => (
+                  <View key={j} style={styles.bulletRow} wrap={false}>
+                    <Text style={styles.bulletGlyph}>•</Text>
+                    <View style={styles.bulletTextWrap}>
+                      <RichParagraph
+                        text={b.trimEnd().replace(/\.$/, '')}
+                        paragraphStyle={styles.justifiedLine}
+                        baseStyle={{ fontSize: 10, lineHeight: 1.09, textAlign: 'justify', color: COLORS.alt, width: '100%' }}
+                        boldStyle={{ fontWeight: 'bold', color: COLORS.alt }}
+                      />
+                    </View>
                   </View>
                 ))}
               </View>
             ))}
-          </View>
-        )}
+            <View style={styles.hr} />
+          </>
+        ) : null}
+
+        {hasEdu ? (
+          <>
+            <Text style={styles.sectionTitle}>Education</Text>
+            {resume.education.map(edu => (
+              <View key={edu.id} style={{ marginBottom: 6 }} wrap={false}>
+                <Text style={styles.educationLine}>{formatEducationLikeDocx(edu)}</Text>
+                {edu.notes.filter(n => n.trim()).map((n, ni) => (
+                  <Text key={ni} style={[styles.educationLine, { marginTop: 4, marginLeft: 0 }]}>• {n}</Text>
+                ))}
+              </View>
+            ))}
+          </>
+        ) : null}
       </Page>
     </Document>
   )

@@ -74,7 +74,7 @@ function mergeIntofactBank(
   results: { filename: string; parsed: ParsedDoc | null; error?: string }[]
 ): FactBank {
   const factBank: FactBank = {
-    contact: { name: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '' },
+    contact: { name: '', headline: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '' },
     summary: '',
     experiences: [],
     education: [],
@@ -86,7 +86,17 @@ function mergeIntofactBank(
 
   // Use contact from first successful parse
   if (successResults[0]?.parsed) {
-    factBank.contact = successResults[0].parsed.contact
+    const pc = successResults[0].parsed.contact
+    factBank.contact = {
+      name: pc.name || '',
+      headline: typeof pc.headline === 'string' ? pc.headline : '',
+      email: pc.email || '',
+      phone: pc.phone || '',
+      location: pc.location || '',
+      linkedin: pc.linkedin || '',
+      github: pc.github || '',
+      website: pc.website || '',
+    }
   }
 
   // Use first non-empty summary from parsed files

@@ -153,6 +153,7 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
     const rpt = resume.jdReport
     if (!rpt) return
     const text = [
+      (resume.contact.headline || '').trim(),
       (resume.summary || '').trim(),
       ...resume.experiences.map(e => e.title),
       ...resume.experiences.flatMap(e => e.bullets),
@@ -431,15 +432,19 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
 
       {/* Resume */}
       <div className="overflow-auto flex-1">
-        <div className="bg-white text-black mx-auto shadow-2xl relative" style={{ width: '816px', minHeight: '1056px', padding: '36px', fontFamily: 'Cambria, "Times New Roman", serif', fontSize: '8.5pt', lineHeight: 1.25, transform: 'scale(1.14)', transformOrigin: 'top center', marginBottom: '148px' }}>
+        <div className="bg-white text-black mx-auto shadow-2xl relative" style={{ width: '816px', minHeight: '2112px', padding: '36px', fontFamily: 'Cambria, "Times New Roman", serif', fontSize: '8.5pt', lineHeight: 1.25, transform: 'scale(1.14)', transformOrigin: 'top center', marginBottom: '148px' }}>
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '6px' }}>
-            <div style={{ fontSize: '14pt', fontWeight: 'bold', marginBottom: '6px' }}>
+            <div style={{ fontSize: '16pt', fontWeight: 400, marginBottom: '4px' }}>
               <Editable value={resume.contact.name} onChange={v => upContact('name', v)} />
             </div>
-            <div style={{ fontSize: '8pt', color: '#333', display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '12pt', lineHeight: 1.15, marginBottom: '2px', color: '#000' }}>
+              <Editable value={resume.contact.headline || ''} onChange={v => upContact('headline', v)} />
+            </div>
+            <div style={{ fontSize: '10pt', color: '#000', lineHeight: 1.15, display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
               {[
+                resume.contact.location ? <Editable key="loc" value={resume.contact.location} onChange={v => upContact('location', v)} /> : null,
                 phone ? <Editable key="phone" value={phone} onChange={v => upContact('phone', v)} /> : null,
                 email ? <a key="email" href={`mailto:${email}`} style={{ color: '#1155CC' }}><Editable value={email} onChange={v => upContact('email', v)} /></a> : null,
                 linkedin ? <a key="linkedin" href={linkedin.startsWith('http') ? linkedin : `https://${linkedin}`} style={{ color: '#1155CC' }}>LinkedIn</a> : null,
@@ -447,6 +452,7 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
                 website ? <a key="website" href={website.startsWith('http') ? website : `https://${website}`} style={{ color: '#1155CC' }}>Website</a> : null,
               ].filter(Boolean).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, <span key={`sep-${i}`} style={{ margin: '0 4px' }}>|</span>, el], [])}
             </div>
+            <div style={{ borderTop: '1.2px solid #9A9A9A', marginTop: '8px', marginBottom: '20px' }} />
           </div>
 
           {/* Summary */}
@@ -570,8 +576,9 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
             </div>
           )}
 
-          {/* Page boundary */}
+          {/* Page boundaries (letter: 1056px per page, line at content bottom ≈ 1008px) */}
           <div style={{ position: 'absolute', left: 0, right: 0, top: '1008px', borderTop: '2px dashed rgba(239,68,68,0.5)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: 0, right: 0, top: '2064px', borderTop: '2px dashed rgba(239,68,68,0.35)', pointerEvents: 'none' }} />
         </div>
       </div>
     </div>
