@@ -4,6 +4,7 @@ import { extractText } from 'unpdf'
 import mammoth from 'mammoth'
 import { buildParsePrompt } from '@/lib/prompts'
 import { Experience, Education, Project, FactBank } from '@/lib/types'
+import { resolveContactHeadline } from '@/lib/contact-headline'
 import { randomUUID } from 'crypto'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -171,6 +172,8 @@ function mergeIntofactBank(
     }
   }
   factBank.projects = Array.from(projectMap.values())
+
+  factBank.contact = resolveContactHeadline(factBank.contact, factBank.summary || '')
 
   return factBank
 }

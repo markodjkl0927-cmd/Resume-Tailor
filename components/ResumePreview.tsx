@@ -441,6 +441,11 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
             </div>
             <div style={{ fontSize: '12pt', lineHeight: 1.15, marginBottom: '2px', color: '#000' }}>
               <Editable value={resume.contact.headline || ''} onChange={v => upContact('headline', v)} />
+              {!(resume.contact.headline || '').trim() && (
+                <span style={{ display: 'block', textAlign: 'center', color: '#999', fontSize: '11pt', marginTop: -14, marginBottom: 4 }}>
+                  Professional title — click above to add (e.g. Senior Full Stack | AI Engineer)
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '10pt', color: '#000', lineHeight: 1.15, display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
               {[

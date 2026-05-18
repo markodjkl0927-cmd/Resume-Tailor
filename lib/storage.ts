@@ -1,4 +1,5 @@
 import { FactBank } from './types'
+import { resolveContactHeadline } from './contact-headline'
 
 const STORAGE_KEY = 'resume_builder_factbank'
 
@@ -27,7 +28,9 @@ function migrate(fb: any): FactBank {
     if (!exp.versions) exp.versions = []
     return exp
   })
-  return fb as FactBank
+  const bank = fb as FactBank
+  bank.contact = resolveContactHeadline(bank.contact, bank.summary || '')
+  return bank
 }
 
 export function loadFactBank(): FactBank {

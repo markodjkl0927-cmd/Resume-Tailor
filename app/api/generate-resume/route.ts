@@ -12,6 +12,7 @@ import {
 } from '@/lib/prompts'
 import React from 'react'
 import { ResumePDFDocument } from '@/components/ResumePDF'
+import { resolveContactHeadline } from '@/lib/contact-headline'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -257,8 +258,10 @@ export async function POST(req: NextRequest) {
       needToAdd: missing,
     }
 
+    const contactForResume = resolveContactHeadline(factBank.contact, tailoredSummary)
+
     let resume: GeneratedResume = {
-      contact: factBank.contact,
+      contact: contactForResume,
       summary: tailoredSummary,
       education: factBank.education,
       skills: skillsResult.skills || factBank.skills,

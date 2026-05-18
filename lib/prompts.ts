@@ -59,7 +59,7 @@ Parsing rules:
 - DATES: Use the exact format written in the resume (e.g. "Jan 2022", "2020", "Present", "Current"). Use "" if absent.
 - SKILLS: Flatten all skills into an array of strings. If the resume has skill categories (e.g. "Languages: Python, SQL"), preserve as "Languages: Python, SQL". If uncategorized, use "Skills: skill1, skill2".
 - EDUCATION: Include all degrees, certifications, and bootcamps. Put honors, GPA, or relevant coursework in notes[].
-- CONTACT: For linkedin, extract only the profile slug or full URL. Same for github. If a field is absent, use "". For "headline": the single professional title or tagline typically directly under the candidate name (e.g. "Senior Full Stack | AI Engineer"). If not present, use "".
+- CONTACT: For linkedin, extract only the profile slug or full URL. Same for github. If a field is absent, use "". For "headline": the professional title line directly under the candidate name on its own line (e.g. "Senior Full Stack | AI Engineer"). Must NOT include city, phone, or email — those belong in location/phone/email. If absent, use "".
 - If the resume has no projects section, return "projects": [].
 - If the resume text is garbled, poorly formatted, or has OCR artifacts, do your best to extract what you can.`
 }

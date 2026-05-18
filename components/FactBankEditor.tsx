@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { FactBank, Experience, Education, Version, Project } from '@/lib/types'
 import { saveFactBank, exportFactBank, importFactBank } from '@/lib/storage'
+import { resolveContactHeadline } from '@/lib/contact-headline'
 
 function newId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -47,6 +48,13 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
         skills: mergeSkills(factBank.skills, newFB.skills),
         projects: mergeProjects(factBank.projects || [], newFB.projects || []),
       }
+      merged.contact = resolveContactHeadline(
+        {
+          ...merged.contact,
+          headline: (merged.contact.headline || '').trim() || (newFB.contact?.headline || ''),
+        },
+        merged.summary || '',
+      )
       update(merged)
       if (data.errors?.length) {
         setUploadErrors(data.errors.map((e: { filename: string; error: string }) => `${e.filename}: ${e.error}`))
@@ -214,7 +222,15 @@ export default function FactBankEditor({ factBank, onChange }: Props) {
     if (!file) return
     try {
       const fb = await importFactBank(file)
-      update({ ...fb, summary: typeof fb.summary === 'string' ? fb.summary : '' })
+      const normalized = {
+        ...fb,
+        summary: typeof fb.summary === 'string' ? fb.summary : '',
+        contact: resolveContactHeadline(
+          { ...fb.contact, headline: typeof fb.contact?.headline === 'string' ? fb.contact.headline : '' },
+          typeof fb.summary === 'string' ? fb.summary : '',
+        ),
+      }
+      update(normalized)
     } catch (err) {
       setUploadErrors([String(err)])
     }
