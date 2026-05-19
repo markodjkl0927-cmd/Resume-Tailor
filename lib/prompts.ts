@@ -129,95 +129,151 @@ Return JSON:
 }
 
 export function buildBulletRewritePrompt(
-  top10Keywords: string[],
-  variantKeywords: string[],
-  missingKeywords: string[],
-  experiencesWithNumberedBullets: Array<{
+  jdText: string,
+  jdReport: {
+    role: string
+    top10: string[]
+    titleKeywords: string[]
+    hardSkills: string[]
+    businessContext: string[]
+    actionKeywords: string[]
+  },
+  experiencesWithBullets: Array<{
     experienceId: string
     company: string
+    title: string
+    dates: string
+    tenureYears: number | null
+    sourceBulletCount: number
     numberedBullets: string
   }>
 ): string {
-  const expBlocks = experiencesWithNumberedBullets.map(e =>
-    `EXPERIENCE: ${e.company} (id: ${e.experienceId})\nBULLETS:\n${e.numberedBullets}`
-  ).join('\n\n')
+  const expBlocks = experiencesWithBullets.map(e => {
+    const tenureHint = e.tenureYears != null ? `~${e.tenureYears.toFixed(1)} years` : 'tenure unclear'
+    return `EXPERIENCE: ${e.company} | ${e.title} | ${e.dates} (${tenureHint}, ${e.sourceBulletCount} source bullets) (id: ${e.experienceId})\nSOURCE BULLETS:\n${e.numberedBullets}`
+  }).join('\n\n')
 
-  return `You are optimizing resume bullet points for ATS (Applicant Tracking System) compatibility using MINIMAL changes.
+  return `You are a professional resume writer tailoring WORK EXPERIENCE for a specific job. Rewrite bullets so they read like strong, recruiter-ready achievements — not a task log.
 
-GOAL: Maximize keyword match with the job description while preserving the original bullet quality as much as possible.
+JOB DESCRIPTION:
+${jdText.slice(0, 3000)}
 
-TOP 10 JD KEYWORDS (most important for this role):
-${top10Keywords.join(', ')}
+TARGET ROLE: ${jdReport.role || '(see JD)'}
 
-RULES (follow in strict order):
-1. RETURN UNCHANGED: Any bullet that does not need a keyword change — copy it EXACTLY character-for-character. Do not rephrase, reorder, or improve it.
-2. VARIANT FIX: If a bullet contains a variant form of a keyword (e.g. "A/B testing" when JD says "A/B test", or "managing" when JD says "management") — replace ONLY that word/phrase with the JD's exact phrasing. Change absolutely nothing else in that bullet.
-3. KEYWORD INSERT: For MISSING keywords only — find the single most relevant bullet and insert the keyword naturally with the absolute minimum edit. If no bullet can naturally accept the keyword, skip it. Do NOT force awkward insertions.
-4. NEVER fabricate facts, numbers, company names, tools, or any detail not in the original bullet.
-5. NEVER end any bullet with a period.
-6. Return the EXACT SAME NUMBER of bullets for each experience — do not merge, split, or drop any bullet.
+JD LANGUAGE TO MIRROR (use exact phrasing from the JD where truthful):
+- Top priorities: ${(jdReport.top10 || []).join(', ') || '(none)'}
+- Title / function: ${(jdReport.titleKeywords || []).join(', ') || '(none)'}
+- Hard skills / tools: ${(jdReport.hardSkills || []).join(', ') || '(none)'}
+- Business context: ${(jdReport.businessContext || []).join(', ') || '(none)'}
+- Action phrases from JD: ${(jdReport.actionKeywords || []).join(', ') || '(none)'}
 
-VARIANT KEYWORDS — find the variant form in the bullets and replace with this exact JD phrasing:
-${variantKeywords.length > 0 ? variantKeywords.join(', ') : '(none)'}
+TAILORING RULES (follow all):
 
-MISSING KEYWORDS — not present at all, insert naturally where possible:
-${missingKeywords.length > 0 ? missingKeywords.join(', ') : '(none)'}
+1) MIRROR JD LANGUAGE (truthful only)
+- Use the JD's exact phrases ONLY when the SOURCE BULLETS for that role already prove that work (same domain, tools, or outcomes).
+- Prefer technical phrases (Python, React, CI/CD, LangChain, REST APIs) over employer marketing language from the JD.
+- NEVER paste employer-specific or industry jargon into a role unless that role's source bullets mention it (e.g. do NOT add "incident response", "cyber incident", "client-centric approach", or "IR workflows" to an AI evaluation role unless the source says so).
+- Do NOT repeat the same JD phrase in more than one bullet for the same role.
+
+2) PRIORITIZE AND CUT
+- Drop routine duties, outdated tools, and bullets irrelevant to this JD — but long roles need enough depth.
+- Bullet targets by tenure (use the dates on each EXPERIENCE line):
+  • ~4+ years in role: keep **5–7** tailored bullets when the source has 5+ bullets
+  • ~2–3 years: keep **4–6** bullets
+  • Under ~2 years or very few source bullets: keep **3–4** (never 0; never more than the source count)
+- REORDER bullets within each role: most relevant accomplishments and JD-aligned skills FIRST (recruiters read top-down).
+
+3) ACHIEVEMENTS OVER DUTIES
+- Replace generic duty lines with impact-focused bullets.
+- Structure: strong action verb + what you did + outcome when the source provides it.
+- Example direction: "Managed social media" → "Developed and executed targeted social campaigns, increasing engagement [use source metrics only]."
+- Lead with verbs like Led, Built, Delivered, Improved, Reduced, Scaled — match the JD's tone.
+
+4) PRESERVE METRICS (mandatory)
+- If a source bullet contains a number, percentage, latency/performance figure, or quantified outcome, that metric MUST appear in the tailored set for that role (same role's output bullets).
+- Do NOT drop metrics when shortening bullets — shorten other words instead.
+- NEVER invent new numbers; only preserve or lightly rephrase metrics already in the source.
+
+5) STAR (when rewriting weak bullets)
+- Implicitly cover Situation/Task in one short clause if needed, then Action and Result.
+- Use numbers, %, revenue, time saved ONLY if they appear in the source bullets — NEVER invent metrics.
+
+6) TRUTH AND ATS
+- NEVER fabricate employers, titles, tools, projects, or achievements not supported by the source bullets.
+- Do NOT claim tools/skills (Terraform, Kubernetes, MCP, GitHub Actions, AWS ownership) unless the source bullets for that role mention them.
+- You may rephrase, merge, or split bullets; you may drop weak bullets.
+- NEVER end a bullet with a period.
+- One line per bullet when possible; two lines max for dense accomplishments.
 
 ${expBlocks}
 
-Return JSON (no markdown, no code blocks, just raw JSON):
+Return JSON only (no markdown):
 {
   "experiences": [
     {
       "experienceId": "...",
-      "bullets": ["bullet 1", "bullet 2", ...]
+      "bullets": ["most relevant bullet first", "..."]
     }
   ]
 }`
 }
 
 export function buildAggressiveBulletRewritePrompt(
-  top10Keywords: string[],
+  jdText: string,
+  jdReport: {
+    role: string
+    top10: string[]
+    titleKeywords: string[]
+    hardSkills: string[]
+    businessContext: string[]
+    actionKeywords: string[]
+  },
   missingBusinessContext: string[],
   missingHardSkills: string[],
-  experiencesWithNumberedBullets: Array<{
+  experiencesWithBullets: Array<{
     experienceId: string
     company: string
+    title: string
+    dates: string
     numberedBullets: string
   }>
 ): string {
-  const expBlocks = experiencesWithNumberedBullets.map(e =>
-    `EXPERIENCE: ${e.company} (id: ${e.experienceId})\nBULLETS:\n${e.numberedBullets}`
+  const expBlocks = experiencesWithBullets.map(e =>
+    `EXPERIENCE: ${e.company} | ${e.title} | ${e.dates} (id: ${e.experienceId})\nCURRENT BULLETS:\n${e.numberedBullets}`
   ).join('\n\n')
 
-  return `You are optimizing resume bullet points for maximum ATS keyword coverage.
+  return `You are doing a second-pass BOOST on an already tailored resume. Push ATS keyword coverage while keeping achievement-style bullets.
 
-TOP 10 JD KEYWORDS:
-${top10Keywords.join(', ')}
+JOB DESCRIPTION (excerpt):
+${jdText.slice(0, 2000)}
 
-RULES:
-1. RETURN UNCHANGED: Any bullet that does not need changes — copy EXACTLY.
-2. BUSINESS CONTEXT KEYWORDS — these are general PM/business concepts (e.g. NPS, feature development, friction points, consumer experiences). For each one, find the most relevant bullet and work it in naturally. Be proactive — if a bullet is about the same topic, add the keyword even if it requires a small rewrite of that phrase. Do NOT fabricate metrics or company-specific facts.
-3. HARD SKILLS KEYWORDS — only insert if the bullet already demonstrates use of that skill. Do not add a tool the candidate clearly didn't use.
-4. NEVER fabricate numbers, company names, or specific achievements not in the original.
-5. NEVER end any bullet with a period.
-6. Return the EXACT SAME NUMBER of bullets per experience.
+TARGET ROLE: ${jdReport.role || '(see JD)'}
 
-MISSING BUSINESS CONTEXT KEYWORDS (insert proactively):
-${missingBusinessContext.length > 0 ? missingBusinessContext.join(', ') : '(none)'}
+TOP 10 JD KEYWORDS: ${(jdReport.top10 || []).join(', ')}
 
-MISSING HARD SKILLS (insert only where evidenced):
-${missingHardSkills.length > 0 ? missingHardSkills.join(', ') : '(none)'}
+STILL APPLY:
+- Achievement-focused bullets (action verb + impact); STAR-style when helpful
+- Most relevant bullets first within each role
+- Mirror JD exact phrasing ONLY where that role's CURRENT bullets already support it
+- PRESERVE every metric (%, numbers, performance outcomes) from the current bullets — do not remove them
+- NEVER add employer/industry jargon (cyber IR, client-centric, incident response) unless already in that role's bullets
+- NEVER fabricate metrics, tools, or employers
+- NEVER end bullets with a period
+- 4–7 bullets for 4+ year roles; 4–6 for 2–3 years; drop only weak/irrelevant lines
+
+BOOST (more aggressive than first pass):
+- Work in MISSING business context keywords below only when the bullet's existing work topic matches — do not add fake facts or unrelated domain language
+- Work in MISSING hard skills ONLY where the bullet already proves that skill
+
+MISSING BUSINESS CONTEXT: ${missingBusinessContext.length > 0 ? missingBusinessContext.join(', ') : '(none)'}
+MISSING HARD SKILLS (evidence required): ${missingHardSkills.length > 0 ? missingHardSkills.join(', ') : '(none)'}
 
 ${expBlocks}
 
-Return JSON (no markdown, no code blocks, just raw JSON):
+Return JSON only:
 {
   "experiences": [
-    {
-      "experienceId": "...",
-      "bullets": ["bullet 1", "bullet 2", ...]
-    }
+    { "experienceId": "...", "bullets": ["..."] }
   ]
 }`
 }
@@ -262,9 +318,11 @@ ${rawSkills.join('\n')}
 
 Task:
 - Keep EVERY skill from the candidate's list — do NOT omit any skill
-- Consolidate into exactly 2–3 groups (merge related categories together to save space)
+- Consolidate into exactly 2–3 compact groups (merge related categories; avoid sparse lines with only 1–2 skills)
 - Put JD-relevant skills first within each group
 - Format each group as: "CategoryName: skill1, skill2, skill3"
+- Add JD tools (e.g. Terraform, Kubernetes, MCP) ONLY if they appear in the candidate's raw skills or are clearly implied by listed experience — do NOT invent skills to match the JD
+- Do NOT add employer-specific domain buzzwords (e.g. incident response, cyber resilience) to the skills section unless the candidate already listed them
 
 Return JSON (no markdown):
 {
@@ -314,9 +372,11 @@ RULES (strict order):
 3. VOICE: No first person — never use "I", "me", "my", or "we". Write in third-person professional style (e.g. "Product Manager with 5 years..." not "I am a Product Manager...").
 4. VARIANT FIX: If the summary uses a variant form of a JD keyword (e.g. "A/B testing" vs "A/B test"), replace ONLY that phrase with the JD's exact phrasing.
 5. KEYWORD INSERT: For MISSING keywords below, weave in naturally with the smallest possible edit. Prioritize title/function and business context over stuffing hard skills. Skip any keyword that cannot fit without sounding forced or inventing experience.
-6. ALIGNMENT: Gently align opening line with the JD role (${jdReport.role || 'target role'}) and selected titles — without changing seniority, years, or employers the candidate did not state.
-7. NEVER fabricate employers, titles, years, tools, degrees, metrics, or achievements not implied by the original summary or selected titles.
-8. No bullet points. Plain prose only. No trailing period required on the last sentence (match original style).
+6. METRICS: Keep every number, percentage, and quantified outcome from the ORIGINAL SUMMARY — do not remove them when editing.
+7. DOMAIN LANGUAGE: Do NOT add employer-specific or industry jargon from the JD (e.g. cyber incident, incident response, client-centric) unless the original summary already uses that domain.
+8. ALIGNMENT: Gently align opening line with the JD role (${jdReport.role || 'target role'}) and selected titles — without changing seniority, years, or employers the candidate did not state.
+9. NEVER fabricate employers, titles, years, tools, degrees, metrics, or achievements not implied by the original summary or selected titles.
+10. No bullet points. Plain prose only. No trailing period required on the last sentence (match original style).
 
 VARIANT KEYWORDS — replace variant with JD phrasing only:
 ${variantKeywords.length > 0 ? variantKeywords.join(', ') : '(none)'}

@@ -13,6 +13,13 @@ import {
 import React from 'react'
 import { ResumePDFDocument } from '@/components/ResumePDF'
 import { resolveContactHeadline } from '@/lib/contact-headline'
+import { normalizeBulletText } from '@/lib/bullet-text'
+import { applyBulletFidelity, collectScrubPhrases, preserveSummaryMetrics } from '@/lib/bullet-fidelity'
+import {
+  estimateTenureYears,
+  filterExperiencesForResume,
+  recommendedMinBullets,
+} from '@/lib/experience-priority'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -56,11 +63,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing factBank or jdText' }, { status: 400 })
     }
 
+    // Focus resume on recent, relevant roles (last 4 jobs, within ~10 years)
+    const resumeExperiences = filterExperiencesForResume(factBank.experiences)
+    const excludedCompanies = factBank.experiences
+      .filter(e => !resumeExperiences.some(r => r.id === e.id))
+      .map(e => e.company)
+    console.log('[experience filter]', `${resumeExperiences.length}/${factBank.experiences.length} roles included`)
+    if (excludedCompanies.length > 0) {
+      console.log('[experience filter] excluded (beyond 5 most recent / 12-year window):', excludedCompanies.join(', '))
+    }
+
     // Step A + B in parallel: Frame selection & JD Report
     const [frameSelectionCompletion, jdReportCompletion] = await Promise.all([
       openai.chat.completions.create({
         model: 'gpt-4o',
-        messages: [{ role: 'user', content: buildVersionSelectionPrompt(jdText, factBank.experiences) }],
+        messages: [{ role: 'user', content: buildVersionSelectionPrompt(jdText, resumeExperiences) }],
         response_format: { type: 'json_object' },
         temperature: 0.1,
       }),
@@ -99,16 +116,35 @@ export async function POST(req: NextRequest) {
     // Build version map
     const versionMap = new Map(versionSelection.selections.map(s => [s.experienceId, s.selectedVersionId]))
 
-    // Build numbered bullets for each experience using selected version
-    const experiencesWithNumberedBullets = factBank.experiences.map(exp => {
+    const jdReportForBullets = {
+      role: rawReport.role || '',
+      top10: top10 || [],
+      titleKeywords: titleFunction || [],
+      hardSkills: hardSkills || [],
+      businessContext: businessContext || [],
+      actionKeywords: rawReport.actionKeywords || [],
+    }
+
+    // Build numbered bullets for included experiences using selected version
+    const experiencesWithBullets = resumeExperiences.map(exp => {
       const selectedVersionId = versionMap.get(exp.id)
       const selectedVersion = exp.versions.find(v => v.id === selectedVersionId) || exp.versions[0]
       const bullets = selectedVersion.bullets.filter(b => b.trim())
       const numberedBullets = bullets.map((b, i) => `[${i + 1}] ${b}`).join('\n')
-      return { experienceId: exp.id, company: exp.company, numberedBullets }
+      const dates = [exp.startDate, exp.endDate].filter(Boolean).join(' – ')
+      const tenureYears = estimateTenureYears(exp)
+      return {
+        experienceId: exp.id,
+        company: exp.company,
+        title: selectedVersion.title,
+        dates,
+        tenureYears,
+        sourceBulletCount: bullets.length,
+        numberedBullets,
+      }
     })
 
-    const selectedTitles = factBank.experiences.map(exp => {
+    const selectedTitles = resumeExperiences.map(exp => {
       const selectedVersionId = versionMap.get(exp.id)
       const selectedVersion = exp.versions.find(v => v.id === selectedVersionId) || exp.versions[0]
       return `${selectedVersion.title} at ${exp.company}`
@@ -131,18 +167,10 @@ export async function POST(req: NextRequest) {
     const beforeMissing = atsKeywords.filter(kw => !keywordMatches(kw, originalText))
     const beforeScore = calcWeightedScore(originalText)
 
-    // Variant keywords: matches via stemming but not exact
-    const variantKeywords = atsKeywords.filter(kw => {
-      const kwLower = kw.toLowerCase()
-      return !originalText.includes(kwLower) && keywordMatches(kw, originalText)
-    })
-    const missingKeywords = beforeMissing
-
     console.log('[keywords] hardSkills:', hardSkills)
     console.log('[keywords] businessContext:', businessContext)
     console.log('[keywords] top10:', top10)
-    console.log('[keywords] variantKeywords:', variantKeywords)
-    console.log('[keywords] missingKeywords:', missingKeywords)
+    console.log('[keywords] missingKeywords:', beforeMissing)
     console.log('[score] beforeScore:', beforeScore)
 
     // Step C + D (+ summary when present) in parallel: Bullet rewrite, Skills, Summary
@@ -161,9 +189,9 @@ export async function POST(req: NextRequest) {
     const round2Tasks: Promise<any>[] = [
       openai.chat.completions.create({
         model: 'gpt-4o',
-        messages: [{ role: 'user', content: buildBulletRewritePrompt(top10, variantKeywords, missingKeywords, experiencesWithNumberedBullets) }],
+        messages: [{ role: 'user', content: buildBulletRewritePrompt(jdText, jdReportForBullets, experiencesWithBullets) }],
         response_format: { type: 'json_object' },
-        temperature: 0.2,
+        temperature: 0.35,
       }),
       openai.chat.completions.create({
         model: 'gpt-4o',
@@ -210,27 +238,32 @@ export async function POST(req: NextRequest) {
     }
     console.log('[bullet rewrite result]', JSON.stringify(bulletResult.experiences?.map(e => ({ id: e.experienceId, count: e.bullets?.length, sample: e.bullets?.[0]?.slice(0, 80) }))))
     const bulletMap = new Map(bulletResult.experiences.map(e => [e.experienceId, e.bullets]))
+    const scrubPhrases = collectScrubPhrases(rawReport)
 
     const skillsResult = JSON.parse(skillsCompletion.choices[0].message.content || '{}') as { skills: string[] }
 
     let tailoredSummary = originalSummary
     if (summaryCompletion) {
       const summaryResult = JSON.parse(summaryCompletion.choices[0].message.content || '{}') as { summary?: string }
-      tailoredSummary = (summaryResult.summary || originalSummary).trim()
+      const rawSummary = (summaryResult.summary || originalSummary).trim()
+      tailoredSummary = preserveSummaryMetrics(originalSummary, rawSummary)
     }
 
     // Assemble generated resume
-    const generatedExperiences: GeneratedExperience[] = factBank.experiences.map(exp => {
+    const generatedExperiences: GeneratedExperience[] = resumeExperiences.map(exp => {
       const selectedVersionId = versionMap.get(exp.id)
       const selectedVersion = exp.versions.find(v => v.id === selectedVersionId) || exp.versions[0]
-      const bullets = bulletMap.get(exp.id) || selectedVersion.bullets
+      const sourceBullets = selectedVersion.bullets.filter(b => b.trim())
+      const rawBullets = bulletMap.get(exp.id) || sourceBullets
+      const minBullets = recommendedMinBullets(estimateTenureYears(exp), sourceBullets.length)
+      const bullets = applyBulletFidelity(sourceBullets, rawBullets, scrubPhrases, minBullets)
       return {
         company: exp.company,
         title: selectedVersion.title,
         location: exp.location,
         startDate: exp.startDate,
         endDate: exp.endDate,
-        bullets: bullets.map(b => b.trimEnd().replace(/\.$/, '')),
+        bullets,
         pdfRoleSkillsLine: exp.pdfRoleSkillsLine?.trim(),
         pdfEmploymentType: exp.pdfEmploymentType?.trim(),
         pdfPageBreakBeforeBulletIndex: exp.pdfPageBreakBeforeBulletIndex,

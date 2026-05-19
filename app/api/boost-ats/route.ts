@@ -5,6 +5,9 @@ import {
   buildAggressiveBulletRewritePrompt,
   buildSkillsBoostPrompt,
 } from '@/lib/prompts'
+import { normalizeBulletText } from '@/lib/bullet-text'
+import { applyBulletFidelity, collectScrubPhrases } from '@/lib/bullet-fidelity'
+import { jdContextFromReport } from '@/lib/jd-context'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -44,15 +47,36 @@ export async function POST(req: NextRequest) {
     )
 
     // Step 1: Run aggressive bullet rewrite first
-    const experiencesWithNumberedBullets = resume.experiences.map(exp => ({
+    const jdText = jdContextFromReport(jdReport)
+    const jdReportForBullets = {
+      role: jdReport.role || '',
+      top10: jdReport.top10 || [],
+      titleKeywords: jdReport.titleKeywords || [],
+      hardSkills: jdReport.hardSkills || [],
+      businessContext: jdReport.businessContext || [],
+      actionKeywords: jdReport.actionKeywords || [],
+    }
+
+    const experiencesWithBullets = resume.experiences.map(exp => ({
       experienceId: `${exp.company}-${exp.title}`,
       company: exp.company,
+      title: exp.title,
+      dates: [exp.startDate, exp.endDate].filter(Boolean).join(' – '),
       numberedBullets: exp.bullets.map((b, i) => `[${i + 1}] ${b}`).join('\n'),
     }))
 
     const bulletCompletion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      messages: [{ role: 'user', content: buildAggressiveBulletRewritePrompt(jdReport.top10 || [], missingBusinessContext, missingHardSkills, experiencesWithNumberedBullets) }],
+      messages: [{
+        role: 'user',
+        content: buildAggressiveBulletRewritePrompt(
+          jdText,
+          jdReportForBullets,
+          missingBusinessContext,
+          missingHardSkills,
+          experiencesWithBullets,
+        ),
+      }],
       response_format: { type: 'json_object' },
       temperature: 0.3,
     })
@@ -62,15 +86,15 @@ export async function POST(req: NextRequest) {
     }
 
     const bulletMap = new Map(bulletResult.experiences.map(e => [e.experienceId, e.bullets]))
+    const scrubPhrases = collectScrubPhrases(jdReport)
 
     const boostedExperiences = resume.experiences.map(exp => {
       const key = `${exp.company}-${exp.title}`
-      const newBullets = bulletMap.get(key)
+      const sourceBullets = exp.bullets.map(b => normalizeBulletText(b))
+      const rawBullets = (bulletMap.get(key) ?? exp.bullets).map(b => normalizeBulletText(b))
       return {
         ...exp,
-        bullets: newBullets
-          ? newBullets.map(b => b.trimEnd().replace(/\.$/, ''))
-          : exp.bullets,
+        bullets: applyBulletFidelity(sourceBullets, rawBullets, scrubPhrases),
       }
     })
 

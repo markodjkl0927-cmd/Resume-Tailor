@@ -509,7 +509,7 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
                   {exp.bullets.map((bullet, j) => (
                     <Row key={j} id={`bullet-${i}-${j}`} hovered={hovered} setHovered={setHovered} onDelete={() => deleteBullet(i, j)} style={{ marginBottom: '1.5px' }}>
                       <span style={{ width: '10px', flexShrink: 0, userSelect: 'none' }}>•</span>
-                      <Editable value={bullet} onChange={v => upBullet(i, j, v)} style={{ flex: 1, textAlign: 'justify' }} />
+                      <Editable value={bullet} onChange={v => upBullet(i, j, v)} style={{ flex: 1, textAlign: 'left' }} />
                     </Row>
                   ))}
                   <button
@@ -538,7 +538,7 @@ export default function ResumePreview({ resume, onChange, onDownloaded }: Props)
                   {proj.bullets.map((bullet, bi) => (
                     <Row key={bi} id={`projbullet-${pi}-${bi}`} hovered={hovered} setHovered={setHovered} onDelete={() => deleteProjBullet(pi, bi)} style={{ marginBottom: '1.5px' }}>
                       <span style={{ width: '10px', flexShrink: 0, userSelect: 'none' }}>•</span>
-                      <Editable value={bullet} onChange={v => upProjBullet(pi, bi, v)} style={{ flex: 1, textAlign: 'justify' }} />
+                      <Editable value={bullet} onChange={v => upProjBullet(pi, bi, v)} style={{ flex: 1, textAlign: 'left' }} />
                     </Row>
                   ))}
                   <button
